@@ -5,6 +5,11 @@ export enum Difficulty {
   HARD = 'Difícil'
 }
 
+export enum UserRole {
+  STUDENT = 'ALUNO',
+  TEACHER = 'PROFESSOR'
+}
+
 export interface Skill {
   code: string;
   name: string;
