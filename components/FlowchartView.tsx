@@ -1,11 +1,11 @@
 
-import React from 'react';
-import { SKILLS } from '../constants';
+import React, { useState } from 'react';
+import { SKILLS, GET_PREREQUISITES_RECURSIVE } from '../constants';
 
 const FlowchartView: React.FC = () => {
   const years = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  
-  // Define some color themes for years
+  const [activeSkill, setActiveSkill] = useState<string | null>(null);
+
   const yearColors: Record<number, string> = {
     1: 'bg-rose-50 border-rose-200 text-rose-700',
     2: 'bg-orange-50 border-orange-200 text-orange-700',
@@ -18,15 +18,37 @@ const FlowchartView: React.FC = () => {
     9: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700',
   };
 
+  const getHighlightClass = (code: string) => {
+    if (!activeSkill) return '';
+    if (activeSkill === code) return 'ring-4 ring-blue-500 scale-105 z-20 shadow-xl';
+    const related = GET_PREREQUISITES_RECURSIVE(activeSkill);
+    if (related.includes(code)) return 'ring-2 ring-amber-400 opacity-100 z-10';
+    return 'opacity-30 blur-[1px]';
+  };
+
   return (
     <div className="bg-white p-8 rounded-2xl border border-slate-200 overflow-x-auto shadow-sm">
-      <h3 className="text-2xl font-bold text-slate-800 mb-2">Percurso Pedagógico das Ciências</h3>
-      <p className="text-slate-500 mb-10">Relação de dependência e evolução das habilidades (1º ao 9º Ano)</p>
+      <div className="flex justify-between items-start mb-10">
+        <div>
+          <h3 className="text-2xl font-bold text-slate-800 mb-2">Percurso Pedagógico das Ciências (BNCC)</h3>
+          <p className="text-slate-500 max-w-2xl">
+            Clique em uma habilidade para visualizar seu percurso histórico e pré-requisitos pedagógicos desde o 1º ano.
+          </p>
+        </div>
+        {activeSkill && (
+          <button 
+            onClick={() => setActiveSkill(null)}
+            className="text-blue-600 font-bold bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+          >
+            Limpar Filtro
+          </button>
+        )}
+      </div>
       
-      <div className="flex gap-12 min-w-[2000px] pb-10 relative">
+      <div className="flex gap-8 min-w-[2800px] pb-10 relative">
         {years.map(year => (
           <div key={year} className="flex-1 flex flex-col gap-6 relative z-10">
-            <div className={`text-center font-black text-lg py-3 rounded-xl sticky top-0 shadow-sm border ${yearColors[year]}`}>
+            <div className={`text-center font-black text-lg py-4 rounded-xl sticky top-0 shadow-sm border ${yearColors[year]}`}>
               {year}º ANO
             </div>
             
@@ -34,48 +56,47 @@ const FlowchartView: React.FC = () => {
               {SKILLS.filter(s => s.year === year).map(skill => (
                 <div 
                   key={skill.code}
-                  className={`p-3 rounded-lg border bg-white shadow-sm hover:shadow-md transition-all group relative`}
-                  title={skill.description}
+                  onClick={() => setActiveSkill(skill.code === activeSkill ? null : skill.code)}
+                  className={`p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition-all cursor-pointer group relative ${getHighlightClass(skill.code)}`}
                 >
-                  <div className="flex justify-between items-center mb-1">
+                  <div className="flex justify-between items-center mb-2">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{skill.code}</span>
                   </div>
-                  <div className="text-xs font-bold text-slate-700 leading-tight">
+                  <div className="text-sm font-bold text-slate-700 leading-tight">
                     {skill.name}
                   </div>
+                  <div className="mt-2 text-[10px] text-slate-400 line-clamp-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity">
+                    {skill.description}
+                  </div>
 
-                  {/* Visual indicators for connections */}
-                  {skill.preRequisites && skill.preRequisites.length > 0 && (
-                    <div className="absolute left-[-48px] top-1/2 w-[48px] h-0.5 bg-slate-200 pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity">
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-400"></div>
+                  {/* Visual connections for the active path */}
+                  {activeSkill === skill.code && skill.preRequisites?.map((pre, i) => (
+                    <div 
+                      key={pre}
+                      className="absolute left-[-32px] top-1/2 w-[32px] h-0.5 bg-blue-500 pointer-events-none"
+                    >
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-blue-500"></div>
                     </div>
-                  )}
+                  ))}
                 </div>
               ))}
             </div>
           </div>
         ))}
-
-        {/* Background lines could be added here for a more "flowchart" feel */}
-        <div className="absolute inset-0 pointer-events-none opacity-20">
-          <svg className="w-full h-full">
-            <defs>
-              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-                <polygon points="0 0, 10 3.5, 0 7" fill="#cbd5e1" />
-              </marker>
-            </defs>
-          </svg>
-        </div>
       </div>
       
-      <div className="mt-8 flex gap-6 text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded-full bg-blue-400"></div>
-          <span className="text-slate-500">Habilidade Dependente</span>
+      <div className="mt-8 flex flex-wrap gap-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 rounded-md ring-4 ring-blue-500 bg-white"></div>
+          <span className="text-slate-700 font-bold">Habilidade Selecionada</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-0.5 bg-slate-200"></div>
-          <span className="text-slate-500">Conexão Pedagógica</span>
+        <div className="flex items-center gap-3">
+          <div className="w-5 h-5 rounded-md ring-2 ring-amber-400 bg-white"></div>
+          <span className="text-slate-700 font-bold">Pré-requisito Pedagógico</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-0.5 bg-blue-500"></div>
+          <span className="text-slate-500">Conexão Direta</span>
         </div>
       </div>
     </div>
